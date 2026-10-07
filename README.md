@@ -1,4 +1,4 @@
-> **This fork adds a PlayStation 4 port** (branch `ps4`). See [ps4/README.md](ps4/README.md) for the PS4 build, install and status. Not affiliated with the upstream project; please report PS4 problems here.
+> **This fork adds a PlayStation 4 port** (branch `ps4`). **[How to install on PS4 (step-by-step)](ps4/INSTALL.md)** · [PS4 port status and details](ps4/README.md). Not affiliated with the upstream project; please report PS4 problems here.
 
 # Crash Team Racing: Turbocharged
 <img src="screenshots/game1.jpg"></img><br>

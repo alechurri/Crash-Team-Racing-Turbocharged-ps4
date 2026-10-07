@@ -1,5 +1,7 @@
 # Crash Team Racing: Turbocharged on PS4
 
+**→ [How to install (step-by-step tutorial)](INSTALL.md)**
+
 A native port of [Crash Team Racing: Turbocharged](https://github.com/CameronRedmore/Crash-Team-Racing-Turbocharged)
 (the CTR decompilation-based PC port) to jailbroken PlayStation 4 consoles. The game runs as native
 x86-64 code on the console: no emulator.
@@ -31,53 +33,15 @@ without an error (tested on a PS4 Pro). Not every mode and option has been check
 - Closing the game from the PS button menu (*Close Application*) has not been tested yet; quit from
   the game's own menu instead.
 
-## You need
-
-| File | Where it comes from | Where it goes on the PS4 |
-| --- | --- | --- |
-| `ctr-u.bin` | **your own** NTSC-U (US) Crash Team Racing disc, dumped as a raw BIN (below) | `/data/ctr/assets/ctr-u.bin` |
-| `ctr-turbocharged-ps4-v0.1.2.pkg` | the [Releases page](https://github.com/alechurri/Crash-Team-Racing-Turbocharged-ps4/releases) | installed as a package |
-
-- A PS4 with GoldHEN (only tested on a PS4 Pro, firmware 12.02).
-- No game data is included or provided.
-
-**Dumping your disc.** Put the disc in a PC drive and make a **raw MODE2/2352** image: in ImgBurn,
-*Create image file from disc*; it saves a `.bin` and a `.cue`, and the `.bin` is the one you need
-(redumper or DiscImageCreator also work). A 2048-byte `.iso` does **not** work: it lacks the audio
-and video sectors. If you also run the PC version of Turbocharged, its first-run setup checks the
-dump and keeps a verified copy as `assets/ctr-u.bin`: that copy is the safest one to use here.
-
 ## Install
 
-Do the steps in this order: the disc image goes on the console **before** the game is started, so
-the first start already finds it.
+**Step-by-step tutorial: [ps4/INSTALL.md](INSTALL.md)** (dumping your disc, FTP in binary mode,
+installing, first start, controls, updating, troubleshooting).
 
-1. **Copy the disc image.** On the PS4, enable GoldHEN's FTP server (*Settings → GoldHEN → Server
-   Settings*). In FileZilla connect to the console's IP, port **2121**, set *Transfer → Transfer
-   type → Binary*, create the folders `/data/ctr/assets/` and upload your image there renamed to
-   exactly **`ctr-u.bin`** (lowercase): `/data/ctr/assets/ctr-u.bin`.
-2. **Install the package.** Upload `ctr-turbocharged-ps4-v0.1.2.pkg` to `/data/pkg/`, also in
-   **binary mode** (or put it on a USB drive), and install it from *Settings → GoldHEN → Package Installer*.
-3. **Play.** Start **CTR Turbocharged** from the home screen. The first start copies the game's
-   fonts into `/data/ctr/assets/`.
-
-**Updating:** install the new package over the old one. Saves (`memcards/`), settings
-(`config.ini`) and your disc image live in `/data/ctr/` and are kept.
-
-## Troubleshooting
-
-All logs are in `/data/ctr/`; download them before starting the game again.
-
-- **The game closes right after starting.** The disc image is missing or not a valid raw NTSC-U
-  dump. `ps4.log` says where it looked: `disc image MISSING` means there is no
-  `/data/ctr/assets/ctr-u.bin` (check the folder and the exact file name); the game's own log
-  (`Crash Team Racing- Turbocharged.log`) says why a present image was rejected.
-- **"Memory card slot full" when saving.** That was v0.1.0; install the latest version.
-- **Error CE-34878-0 when quitting.** That was v0.1.0 and v0.1.1; install the latest version.
-- **"1&" instead of "1st", or text overflowing a box.** The Spanish language setting; see *Known
-  issues* above. Switch the language to English in the options.
-- **Anything else.** Open an issue with `ps4.log`, `mesa.log` and the game's log, your console model
-  and firmware.
+In short: dump **your own US (NTSC-U) disc** as a raw `.bin` → copy it to
+**`/data/ctr/assets/ctr-u.bin`** over FTP **in binary mode** → install the `.pkg` from the
+[Releases page](https://github.com/alechurri/Crash-Team-Racing-Turbocharged-ps4/releases) with
+GoldHEN → play. No game data is included.
 
 ## Controls
 
