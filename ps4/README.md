@@ -13,20 +13,30 @@ x86-64 code on the console: no emulator.
 
 ## Status
 
-**v0.1.1:** on the console the game boots and plays, with graphics, sound, the DualShock 4 and
-**memory card saves** working (tested on a PS4 Pro). Not every mode and option has been checked one
-by one yet.
+**v0.1.2:** on the console the game boots and plays, with graphics, sound, the DualShock 4 and
+memory card saves working, and quitting from the game's menu returns to the PS4 home screen
+without an error (tested on a PS4 Pro). Not every mode and option has been checked one by one yet.
 
-- v0.1.1: saves work (relative `mkdir` is now anchored to the data folder; before, the game said
-  the memory card slot was full).
+- v0.1.2: quitting no longer shows error CE-34878-0 (the app asks the system to close it instead of
+  returning from `main()`); the crash handler, driver log and fps line in `ps4.log` now actually start.
+- v0.1.1: saves work (before, the game said the memory card slot was full).
 - v0.1.0: first release; everything but saving worked.
+
+**Known issues**
+- With the language set to **Spanish** (and probably the other European languages), some text
+  shows `&` instead of the ordinal ("1&" for "1º"), and some HUD labels such as "VUELTA 1 TIEMPO"
+  overflow their boxes. This comes from the US version of the game, which was only made for
+  English, and happens on the PC version of Turbocharged too; it is not specific to the PS4. English
+  shows correctly.
+- Closing the game from the PS button menu (*Close Application*) has not been tested yet; quit from
+  the game's own menu instead.
 
 ## You need
 
 | File | Where it comes from | Where it goes on the PS4 |
 | --- | --- | --- |
 | `ctr-u.bin` | **your own** NTSC-U (US) Crash Team Racing disc, dumped as a raw BIN (below) | `/data/ctr/assets/ctr-u.bin` |
-| `ctr-turbocharged-ps4-v0.1.1.pkg` | the [Releases page](https://github.com/alechurri/Crash-Team-Racing-Turbocharged-ps4/releases) | installed as a package |
+| `ctr-turbocharged-ps4-v0.1.2.pkg` | the [Releases page](https://github.com/alechurri/Crash-Team-Racing-Turbocharged-ps4/releases) | installed as a package |
 
 - A PS4 with GoldHEN (only tested on a PS4 Pro, firmware 12.02).
 - No game data is included or provided.
@@ -46,7 +56,7 @@ the first start already finds it.
    Settings*). In FileZilla connect to the console's IP, port **2121**, set *Transfer → Transfer
    type → Binary*, create the folders `/data/ctr/assets/` and upload your image there renamed to
    exactly **`ctr-u.bin`** (lowercase): `/data/ctr/assets/ctr-u.bin`.
-2. **Install the package.** Upload `ctr-turbocharged-ps4-v0.1.1.pkg` to `/data/pkg/`, also in
+2. **Install the package.** Upload `ctr-turbocharged-ps4-v0.1.2.pkg` to `/data/pkg/`, also in
    **binary mode** (or put it on a USB drive), and install it from *Settings → GoldHEN → Package Installer*.
 3. **Play.** Start **CTR Turbocharged** from the home screen. The first start copies the game's
    fonts into `/data/ctr/assets/`.
@@ -62,7 +72,10 @@ All logs are in `/data/ctr/`; download them before starting the game again.
   dump. `ps4.log` says where it looked: `disc image MISSING` means there is no
   `/data/ctr/assets/ctr-u.bin` (check the folder and the exact file name); the game's own log
   (`Crash Team Racing- Turbocharged.log`) says why a present image was rejected.
-- **"Memory card slot full" when saving.** That was v0.1.0; install v0.1.1.
+- **"Memory card slot full" when saving.** That was v0.1.0; install the latest version.
+- **Error CE-34878-0 when quitting.** That was v0.1.0 and v0.1.1; install the latest version.
+- **"1&" instead of "1st", or text overflowing a box.** The Spanish language setting; see *Known
+  issues* above. Switch the language to English in the options.
 - **Anything else.** Open an issue with `ps4.log`, `mesa.log` and the game's log, your console model
   and firmware.
 
@@ -78,7 +91,7 @@ All in `/data/ctr/`:
 
 - `ps4.log`: the PS4 layer: startup, GL context, controller, audio, an fps line every 10 s, and on a
   crash the registers and a backtrace as `eboot+0x...` offsets (symbolize them with the release's
-  ELF: `llvm-symbolizer --obj=ctr-turbocharged-ps4-v0.1.1.elf -C -f 0x<offset>`). The previous run's
+  ELF: `llvm-symbolizer --obj=ctr-turbocharged-ps4-v0.1.2.elf -C -f 0x<offset>`). The previous run's
   is kept as `ps4.old.log`.
 - `mesa.log`: the GPU driver.
 - `Crash Team Racing- Turbocharged.log`: the game's own log.
