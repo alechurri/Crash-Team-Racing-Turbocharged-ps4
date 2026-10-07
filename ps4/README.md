@@ -13,12 +13,13 @@ x86-64 code on the console: no emulator.
 
 ## Status
 
-**v0.1.0 (first release):** on the console the game boots and plays: graphics, sound and the
-DualShock 4 work (first test on a PS4 Pro: "everything works except saves"). Not every mode and
-option has been checked one by one yet.
-**Known issue: saving does not work** (the game reports the memory card slot as full). The fix is in
-this branch (`mkdir` was not anchored to the data folder) and will be released as v0.1.1 once it
-is confirmed on the console.
+**v0.1.1:** on the console the game boots and plays, with graphics, sound, the DualShock 4 and
+**memory card saves** working (tested on a PS4 Pro). Not every mode and option has been checked one
+by one yet.
+
+- v0.1.1: saves work (relative `mkdir` is now anchored to the data folder; before, the game said
+  the memory card slot was full).
+- v0.1.0: first release; everything but saving worked.
 
 ## You need
 
@@ -30,7 +31,7 @@ is confirmed on the console.
 
 ## Install
 
-1. Install `ctr-turbocharged-ps4-v0.1.0.pkg` with GoldHEN (copy it by FTP in **binary** mode).
+1. Install `ctr-turbocharged-ps4-v0.1.1.pkg` with GoldHEN (copy it by FTP in **binary** mode).
 2. Start **CTR Turbocharged** once and close it: it creates `/data/ctr/` and copies its fonts there.
 3. Copy your disc image to **`/data/ctr/assets/ctr-u.bin`** (FTP, binary mode).
 4. Start it again.
@@ -49,7 +50,7 @@ All in `/data/ctr/`:
 
 - `ps4.log`: the PS4 layer: startup, GL context, controller, audio, an fps line every 10 s, and on a
   crash the registers and a backtrace as `eboot+0x...` offsets (symbolize them with the release's
-  ELF: `llvm-symbolizer --obj=ctr-turbocharged-ps4-v0.1.0.elf -C -f 0x<offset>`). The previous run's
+  ELF: `llvm-symbolizer --obj=ctr-turbocharged-ps4-v0.1.1.elf -C -f 0x<offset>`). The previous run's
   is kept as `ps4.old.log`.
 - `mesa.log`: the GPU driver.
 - `Crash Team Racing- Turbocharged.log`: the game's own log.
