@@ -46,8 +46,8 @@ the first start already finds it.
    Settings*). In FileZilla connect to the console's IP, port **2121**, set *Transfer → Transfer
    type → Binary*, create the folders `/data/ctr/assets/` and upload your image there renamed to
    exactly **`ctr-u.bin`** (lowercase): `/data/ctr/assets/ctr-u.bin`.
-2. **Install the package.** Upload `ctr-turbocharged-ps4-v0.1.1.pkg` to `/data/pkg/` (or put it on
-   a USB drive) and install it from *Settings → GoldHEN → Package Installer*.
+2. **Install the package.** Upload `ctr-turbocharged-ps4-v0.1.1.pkg` to `/data/pkg/`, also in
+   **binary mode** (or put it on a USB drive), and install it from *Settings → GoldHEN → Package Installer*.
 3. **Play.** Start **CTR Turbocharged** from the home screen. The first start copies the game's
    fonts into `/data/ctr/assets/`.
 
