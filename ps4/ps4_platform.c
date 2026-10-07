@@ -193,6 +193,7 @@ static void *Ps4_Watchdog(void *arg)
 {
 	(void)arg;
 	uint64_t lastFrames = 0, stillSince = Ps4_Seconds100(), lastReport = Ps4_Seconds100();
+	uint64_t reportFrames = 0; // frames at the last status line (lastFrames moves every second)
 	int reported = 0;
 	for (;;)
 	{
@@ -201,8 +202,9 @@ static void *Ps4_Watchdog(void *arg)
 		const uint64_t frames = s_frames;
 		if (now - lastReport >= 1000)
 		{
-			CtrPs4_Log("status: %.1f fps", (double)(frames - lastFrames) * 100.0 / (double)(now - lastReport));
+			CtrPs4_Log("status: %.1f fps", (double)(frames - reportFrames) * 100.0 / (double)(now - lastReport));
 			lastReport = now;
+			reportFrames = frames;
 		}
 		if (frames != lastFrames)
 		{
