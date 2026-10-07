@@ -115,7 +115,10 @@ function(ctr_native_add_label_warning_if_supported target warning flag_check)
     endif()
 endfunction()
 
-# SDL3
+# SDL3 (on the PS4, ps4/ps4.cmake provides SDL3::SDL3 instead: see ps4/README.md)
+if(PS4)
+    include(ps4/ps4.cmake)
+else()
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
@@ -143,6 +146,7 @@ set(SDL_SNDIO_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_X11_XSCRNSAVER OFF CACHE BOOL "" FORCE)
 set(SDL_X11_XTEST OFF CACHE BOOL "" FORCE)
 add_subdirectory(externals/SDL)
+endif()
 
 # CTR Native
 add_executable(ctr_native main.c)

@@ -475,11 +475,14 @@ int main(int argc, char *argv[])
 	printf("[CTR Native] Assets: %s\n", NativeAssets_GetAssetDir());
 	fflush(stdout);
 
+#ifndef __ORBIS__
 	if (chdir(NativeAssets_GetBaseDir()) != 0)
 	{
 		fprintf(stderr, "[CTR Native] Failed to enter base directory: %s\n", NativeAssets_GetBaseDir());
 		return NativeConsole_Return(1);
 	}
+#endif // The PS4 has no working directory: SDL_GetBasePath (ps4/ps4_sdl.c) made the base directory
+       // the anchor of every relative path instead.
 
 #ifndef __vita__
 	load_config();

@@ -36,6 +36,11 @@
 #ifdef __vita__
 void *vglGetProcAddress(const char *name);
 #endif
+#ifdef __ORBIS__
+// ps4/ps4_sdl.c: eglGetProcAddress, the only way to reach desktop GL entry points on the PS4
+// (Mesa is linked statically and there is no libGL).
+void *CtrPs4_GLGetProcAddress(const char *name);
+#endif
 
 internal void *get_proc(const char *namez);
 
@@ -101,7 +106,7 @@ global_variable PFNGLXGETPROCADDRESSPROC_PRIVATE gladGetProcAddressPtr;
 
 internal int open_gl(void)
 {
-#ifdef __vita__
+#if defined(__vita__) || defined(__ORBIS__)
 	return 1;
 #else
 #ifdef __APPLE__
@@ -134,7 +139,7 @@ internal int open_gl(void)
 
 internal void close_gl(void)
 {
-#ifndef __vita__
+#if !defined(__vita__) && !defined(__ORBIS__)
 	if (libGL != NULL)
 	{
 		dlclose(libGL);
@@ -149,6 +154,8 @@ internal void *get_proc(const char *namez)
 	void *result = NULL;
 #ifdef __vita__
 	result = vglGetProcAddress(namez);
+#elif defined(__ORBIS__)
+	result = CtrPs4_GLGetProcAddress(namez);
 #else
 	if (libGL == NULL)
 	{
