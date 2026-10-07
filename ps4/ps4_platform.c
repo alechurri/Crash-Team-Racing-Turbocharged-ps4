@@ -219,9 +219,18 @@ static void *Ps4_Watchdog(void *arg)
 	return NULL;
 }
 
-// Before the game's own initialisers: a crash at any point still reaches the log.
-__attribute__((constructor(101))) static void Ps4_EarlyInit(void)
+// Runs from a constructor and, as a safety net, from the first SDL call the game makes.
+// ⚠ Not constructor(101): the SDK's linker script keeps only the bare .init_array section, and a
+// constructor with a priority goes to .init_array.00101, which is dropped - v0.1.x never ran this
+// (no crash handler, no driver log, no fps lines in ps4.log).
+void CtrPs4_EarlyInit(void)
 {
+	static int done;
+	if (done)
+	{
+		return;
+	}
+	done = 1;
 	CtrPs4_Log("CTR Turbocharged PS4 build %s", CTR_PS4_BUILD_ID);
 	sceKernelInstallExceptionHandler(11 /* SIGSEGV */, Ps4_CrashHandler);
 	sceKernelInstallExceptionHandler(10 /* SIGBUS */, Ps4_CrashHandler);
@@ -236,4 +245,24 @@ __attribute__((constructor(101))) static void Ps4_EarlyInit(void)
 	pthread_t watchdog;
 	pthread_create(&watchdog, NULL, Ps4_Watchdog, NULL);
 	pthread_detach(watchdog);
+}
+
+__attribute__((constructor)) static void Ps4_Constructor(void)
+{
+	CtrPs4_EarlyInit();
+}
+
+// ---- leaving --------------------------------------------------------------------------------
+// Returning from main() on a retail console ends the process outside the system's expected path
+// and shows the error dialog (CE-34878-0), whatever the teardown did (orbis-ports measured it in
+// their RetroArch port). The way out is to ask the system: sceSystemServiceLoadExec("exit"). It is
+// not expected to return; if it does, the code is logged and the old behaviour follows.
+
+int32_t sceSystemServiceLoadExec(const char *path, const char *args[]);
+
+void CtrPs4_Exit(void)
+{
+	CtrPs4_Log("shutdown: asking the system to close the application");
+	const int32_t rc = sceSystemServiceLoadExec("exit", NULL);
+	CtrPs4_Log("sceSystemServiceLoadExec(\"exit\") returned 0x%08x", (unsigned)rc);
 }

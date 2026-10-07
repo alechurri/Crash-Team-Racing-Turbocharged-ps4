@@ -11,6 +11,12 @@
 void CtrPs4_Log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void CtrPs4_LogV(const char *fmt, va_list args);
 
+// Crash handler, log sinks, driver log and watchdog. Idempotent; runs before the game starts.
+void CtrPs4_EarlyInit(void);
+
+// Hands the application back to the system (the clean way to quit on a PS4).
+void CtrPs4_Exit(void);
+
 // Called once per presented frame (SDL_GL_SwapWindow): feeds the fps line and the hang watchdog.
 void CtrPs4_NoteFrame(void);
 

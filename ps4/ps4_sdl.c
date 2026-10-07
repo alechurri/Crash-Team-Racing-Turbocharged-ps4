@@ -565,6 +565,7 @@ const char *SDL_GetBasePath(void)
 	if (!ready)
 	{
 		ready = 1;
+		CtrPs4_EarlyInit();
 		mkdir(PS4_DATA_DIR, 0777);
 		orbis_set_anchor_root(PS4_DATA_DIR);
 		Ps4_InstallAssets(PS4_PACKAGE_DIR, PS4_DATA_DIR "assets");
@@ -645,6 +646,9 @@ void SDL_QuitSubSystem(SDL_InitFlags flags)
 
 void SDL_Quit(void)
 {
+	// The game's last call on its way out (Platform_Shutdown, after audio and the renderer are
+	// released and the saves written): hand the application back to the system.
+	CtrPs4_Exit();
 }
 
 // ---------------------------------------------------------------------------------------------
