@@ -93,6 +93,14 @@ internal int NativeDiscImage_FindHostImagePath(char *dst, size_t dstSize, Native
 	}
 
 	closedir(dir);
+#if defined(__ORBIS__)
+	// PS4: a personal "all in one" package may carry the user's disc image read-only in /app0;
+	// one in the data folder takes precedence.
+	if (!found && access("/app0/assets/" NATIVE_DISC_IMAGE_BIN_PATH, R_OK) == 0)
+	{
+		found = NativePath_Join(dst, dstSize, NATIVE_STR8_LIT("/app0/assets"), NATIVE_STR8_LIT(NATIVE_DISC_IMAGE_BIN_PATH));
+	}
+#endif
 	return found;
 #endif
 }

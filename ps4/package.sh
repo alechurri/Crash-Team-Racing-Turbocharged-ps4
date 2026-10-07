@@ -2,6 +2,7 @@
 # Packages the PS4 build: build-ps4/ctr_native (ELF) -> out/IV0000-CTRT00001_00-CTRTURBOCHARGED0.pkg
 #
 #   bash ctr/ps4/package.sh [build dir] [output dir]
+#   BUNDLE_DISC=/path/to/ctr-u.bin bash ctr/ps4/package.sh ...   (personal all-in-one, see below)
 #
 # Signed and laid out like OpenOrbis's own samples (paid 0x3800000000000011, default authinfo,
 # sce_module/libc.prx + libSceFios2.prx, sce_sys/about/right.sprx, SFO category gd): the layout
@@ -40,6 +41,13 @@ cp "$OO/samples/piglet/sce_sys/about/right.sprx" "$ST/sce_sys/about/"
 cp "$OO/samples/piglet/sce_module/libc.prx" "$OO/samples/piglet/sce_module/libSceFios2.prx" "$ST/sce_module/"
 FILES="eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/about/right.sprx sce_module/libc.prx sce_module/libSceFios2.prx"
 
+# BUNDLE_DISC=<your raw BIN dump>: a personal all-in-one package with the disc image inside, read
+# in place from /app0. It contains the game: for your own console only, never to share.
+if [ -n "$BUNDLE_DISC" ]; then
+    [ -f "$BUNDLE_DISC" ] || { echo "BUNDLE_DISC: no file at $BUNDLE_DISC"; exit 1; }
+    cp "$BUNDLE_DISC" "$ST/assets/ctr-u.bin"
+    FILES="$FILES assets/ctr-u.bin"
+fi
 cp "$SRC/assets/dualshock.png" "$ST/assets/"
 FILES="$FILES assets/dualshock.png"
 for f in "$SRC"/assets/fonts/*; do
@@ -65,5 +73,9 @@ done
     "$BIN/create-gp4.exe" -out pkg.gp4 --content-id="$CID" --files "$FILES" >/dev/null
     "$P" pkg_build pkg.gp4 "$(cygpath -m "$OUT")" >/dev/null
 )
+if [ -n "$BUNDLE_DISC" ]; then
+    mv -f "$OUT/$CID.pkg" "$OUT/$CID-ALL-IN-ONE-PERSONAL.pkg"
+    echo "personal all-in-one package (contains your disc image: do not share it)"
+fi
 echo "game version $VERSION"
 ls -la "$OUT"

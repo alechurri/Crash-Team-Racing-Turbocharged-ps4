@@ -500,6 +500,13 @@ internal int NativeAssets_BaseHasRequiredFile(NativeStr8 baseDir)
 		return 0;
 	}
 
+#if defined(__ORBIS__)
+	// PS4: a personal "all in one" package may carry the user's disc image read-only in /app0.
+	if (!NativeAssets_FileExistsHost(path))
+	{
+		return NativeAssets_FileExistsHost("/app0/assets/" NATIVE_ASSETS_DISC_PATH);
+	}
+#endif
 	return NativeAssets_FileExistsHost(path);
 }
 

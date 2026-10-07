@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
@@ -532,7 +533,9 @@ static void Ps4_InstallAssets(const char *from, const char *to)
 	struct dirent *entry;
 	while ((entry = readdir(dir)) != NULL)
 	{
-		if (entry->d_name[0] == '.')
+		// The disc image of a personal all-in-one package is read in place (native_disc_image.c),
+		// never copied: it is ~600 MB.
+		if (entry->d_name[0] == '.' || strcasecmp(entry->d_name, "ctr-u.bin") == 0)
 		{
 			continue;
 		}
@@ -567,7 +570,9 @@ const char *SDL_GetBasePath(void)
 		Ps4_InstallAssets(PS4_PACKAGE_DIR, PS4_DATA_DIR "assets");
 		struct stat st;
 		Ps4_Log("base path %s; disc image %s", PS4_DATA_DIR,
-		        stat(PS4_DATA_DIR "assets/ctr-u.bin", &st) == 0 ? "present" : "MISSING (put your raw BIN dump at /data/ctr/assets/ctr-u.bin)");
+		        stat(PS4_DATA_DIR "assets/ctr-u.bin", &st) == 0   ? "in /data/ctr/assets"
+		        : stat(PS4_PACKAGE_DIR "/ctr-u.bin", &st) == 0 ? "in the package (all-in-one)"
+		                                                         : "MISSING (put your raw BIN dump at /data/ctr/assets/ctr-u.bin)");
 	}
 	return PS4_DATA_DIR;
 }
