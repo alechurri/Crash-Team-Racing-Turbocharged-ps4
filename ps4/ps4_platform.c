@@ -7,6 +7,7 @@
 
 #include "ps4/ps4_platform.h"
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,6 +18,8 @@
 #include <unistd.h>
 
 int sceKernelInstallExceptionHandler(int signal, void (*handler)(int, void *));
+int sceKernelMkdir(const char *path, int mode);
+int sceKernelRmdir(const char *path);
 typedef void (*orbis_log_fn)(const char *fmt, va_list ap);
 void orbis_set_log(orbis_log_fn fn);
 void orbis_set_log_fatal(orbis_log_fn fn);
@@ -72,6 +75,49 @@ static void Ps4_OrbisLog(const char *fmt, va_list args)
 	char line[900];
 	vsnprintf(line, sizeof(line), fmt, args);
 	CtrPs4_Log("  | %s", line);
+}
+
+// ---- directories --------------------------------------------------------------------------
+// orbis-compat anchors relative paths for open, stat, rename, unlink and remove, but not for mkdir
+// or rmdir: a relative mkdir fails with EINVAL. The game creates "memcards/<slot>" relative to its
+// base directory, so without these the memory card could never be written ("card full").
+
+static const char *Ps4_Anchor(const char *path, char *buf, size_t size)
+{
+	if (path == NULL || path[0] == '/')
+	{
+		return path;
+	}
+	if (path[0] == '.' && path[1] == '/')
+	{
+		path += 2;
+	}
+	snprintf(buf, size, "%s%s", CTR_PS4_DATA_DIR, path);
+	return buf;
+}
+
+int mkdir(const char *path, mode_t mode)
+{
+	char buf[1024];
+	const int rc = sceKernelMkdir(Ps4_Anchor(path, buf, sizeof(buf)), (int)mode);
+	if (rc < 0)
+	{
+		errno = rc & 0xFFFF; // SCE_KERNEL_ERROR_Exxx = 0x80020000 | errno
+		return -1;
+	}
+	return 0;
+}
+
+int rmdir(const char *path)
+{
+	char buf[1024];
+	const int rc = sceKernelRmdir(Ps4_Anchor(path, buf, sizeof(buf)));
+	if (rc < 0)
+	{
+		errno = rc & 0xFFFF;
+		return -1;
+	}
+	return 0;
 }
 
 // ---- crash reports ---------------------------------------------------------------------------
