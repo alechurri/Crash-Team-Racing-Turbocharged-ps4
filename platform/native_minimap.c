@@ -106,14 +106,39 @@ static u64 NativeMinimap_Hash(u64 hash, const void *data, size_t size)
 	return hash;
 }
 
-static u64 NativeMinimap_GeometryKey(const struct mesh_info *mesh, const struct UIMap *map)
+// The minimap reads level geometry through plain pointers. It comes from the live level or from a
+// copy of the level read off the disc into the heap; a 64-bit build cannot store a heap pointer in
+// the retail mesh_info's 32-bit pointer fields (CtrPtr32 handles only reach the executable image),
+// so the copy is never put back into a mesh_info.
+struct NativeMinimapMesh
+{
+	const struct QuadBlock *quads;
+	const struct LevVertex *vertices;
+	int numQuadBlock;
+	int numVertex;
+};
+
+static struct NativeMinimapMesh NativeMinimap_MeshFrom(const struct mesh_info *mesh)
+{
+	struct NativeMinimapMesh view = {0};
+	if (mesh)
+	{
+		view.quads = P32_GET(struct QuadBlock *const, mesh->ptrQuadBlockArray);
+		view.vertices = P32_GET(struct LevVertex *const, mesh->ptrVertexArray);
+		view.numQuadBlock = mesh->numQuadBlock;
+		view.numVertex = mesh->numVertex;
+	}
+	return view;
+}
+
+static u64 NativeMinimap_GeometryKey(const struct NativeMinimapMesh *mesh, const struct UIMap *map)
 {
 	struct UIMap projection = *map;
 	projection.iconStartX = projection.iconStartY = 0;
 	u64 hash = NativeMinimap_Hash(UINT64_C(14695981039346656037), &projection, sizeof(projection));
 	for (int q = 0; q < mesh->numQuadBlock; q++)
 	{
-		const struct QuadBlock *block = &P32_GET(struct QuadBlock *const, mesh->ptrQuadBlockArray)[q];
+		const struct QuadBlock *block = &mesh->quads[q];
 		if (!(block->quadFlags & QUADBLOCK_FLAG_GROUND) ||
 		    (block->quadFlags & (QUADBLOCK_FLAG_NO_COLLISION_RESPONSE | QUADBLOCK_FLAG_KILL_PLANE | QUADBLOCK_FLAG_TRIGGER)))
 			continue;
@@ -123,7 +148,7 @@ static u64 NativeMinimap_GeometryKey(const struct mesh_info *mesh, const struct 
 		{
 			if (block->index[v] >= mesh->numVertex)
 				return 0;
-			hash = NativeMinimap_Hash(hash, &P32_GET(struct LevVertex *const, mesh->ptrVertexArray)[block->index[v]].pos, sizeof(SVec3));
+			hash = NativeMinimap_Hash(hash, &mesh->vertices[block->index[v]].pos, sizeof(SVec3));
 		}
 	}
 	return hash;
@@ -406,23 +431,23 @@ static void NativeMinimap_RasterTriangle(const struct LevVertex *a, const struct
 // CPU-only generation: highest eligible ground at each sample is equivalent
 // to a downward ray against the ground triangles. Scenery roofs do not hide
 // tunnel roads because they are not eligible collision ground.
-static u8 *NativeMinimap_BuildPixels(const struct mesh_info *mesh, const struct UIMap *map, struct NativeMinimapImage *image)
+static u8 *NativeMinimap_BuildPixels(const struct NativeMinimapMesh *mesh, const struct UIMap *map, struct NativeMinimapImage *image)
 {
-	if (!mesh || !P32_GET(struct QuadBlock *const, mesh->ptrQuadBlockArray) || !P32_GET(struct LevVertex *const, mesh->ptrVertexArray) ||
+	if (!mesh || !mesh->quads || !mesh->vertices ||
 	    mesh->numQuadBlock <= 0 || mesh->numQuadBlock > 65536 || mesh->numVertex <= 0 || mesh->numVertex > 65536 || map->worldEndX == map->worldStartX ||
 	    map->worldEndY == map->worldStartY || map->iconSizeX <= 0 || map->iconSizeY <= 0)
 		return NULL;
 	float left = FLT_MAX, top = FLT_MAX, right = -FLT_MAX, bottom = -FLT_MAX;
 	for (int q = 0; q < mesh->numQuadBlock; q++)
 	{
-		const struct QuadBlock *block = &P32_GET(struct QuadBlock *const, mesh->ptrQuadBlockArray)[q];
+		const struct QuadBlock *block = &mesh->quads[q];
 		if (!NativeMinimap_IsGround(block))
 			continue;
 		for (int i = 0; i < 9; i++)
 		{
 			if (block->index[i] >= mesh->numVertex)
 				return NULL;
-			const struct LevVertex *vertex = &P32_GET(struct LevVertex *const, mesh->ptrVertexArray)[block->index[i]];
+			const struct LevVertex *vertex = &mesh->vertices[block->index[i]];
 			double x, y;
 			NativeMinimap_Project(map, vertex->pos.x, vertex->pos.z, &x, &y);
 			left = fminf(left, x);
@@ -453,16 +478,16 @@ static u8 *NativeMinimap_BuildPixels(const struct mesh_info *mesh, const struct 
 		heights[i].height = heights[i].lower = -FLT_MAX;
 	for (int q = 0; q < mesh->numQuadBlock; q++)
 	{
-		const struct QuadBlock *block = &P32_GET(struct QuadBlock *const, mesh->ptrQuadBlockArray)[q];
+		const struct QuadBlock *block = &mesh->quads[q];
 		if (!NativeMinimap_IsGround(block))
 			continue;
 		const int triangles = block->index[2] == block->index[3] ? 4 : 8;
 		for (int t = 0; t < triangles; t++)
 		{
 			const u8 *indices = s_nativeMinimapTriangles[t];
-			NativeMinimap_RasterTriangle(&P32_GET(struct LevVertex *const, mesh->ptrVertexArray)[block->index[indices[0]]],
-			                             &P32_GET(struct LevVertex *const, mesh->ptrVertexArray)[block->index[indices[1]]],
-			                             &P32_GET(struct LevVertex *const, mesh->ptrVertexArray)[block->index[indices[2]]], map, image, heights);
+			NativeMinimap_RasterTriangle(&mesh->vertices[block->index[indices[0]]],
+			                             &mesh->vertices[block->index[indices[1]]],
+			                             &mesh->vertices[block->index[indices[2]]], map, image, heights);
 		}
 	}
 	float minHeight = FLT_MAX, maxHeight = -FLT_MAX;
@@ -534,7 +559,7 @@ static u8 *NativeMinimap_BuildPixels(const struct mesh_info *mesh, const struct 
 	return pixels;
 }
 
-static u8 *NativeMinimap_GetPixels(const struct mesh_info *mesh, const struct UIMap *map, struct NativeMinimapImage *image, int generate)
+static u8 *NativeMinimap_GetPixels(const struct NativeMinimapMesh *mesh, const struct UIMap *map, struct NativeMinimapImage *image, int generate)
 {
 	const u64 key = NativeMinimap_GeometryKey(mesh, map);
 	if (!key)
@@ -549,7 +574,7 @@ static u8 *NativeMinimap_GetPixels(const struct mesh_info *mesh, const struct UI
 	return pixels;
 }
 
-static int NativeMinimap_Build(const struct mesh_info *mesh, const struct UIMap *map, struct NativeMinimapImage *image)
+static int NativeMinimap_Build(const struct NativeMinimapMesh *mesh, const struct UIMap *map, struct NativeMinimapImage *image)
 {
 	// Drawing never rasterises collision data, including during startup.
 	u8 *pixels = NativeMinimap_GetPixels(mesh, map, image, 0);
@@ -622,12 +647,13 @@ static u8 *NativeMinimap_ReadLevelPixels(int levelID, int lod, struct NativeMini
 	    vertexOffset > size || (size_t)mesh.numVertex > (size - vertexOffset) / sizeof(struct LevVertex) || mapOffset == 0 || mapOffset > size ||
 	    sizeof(struct UIMap) > size - mapOffset)
 		goto done;
-	P32_SET(mesh.ptrQuadBlockArray, (struct QuadBlock *)(body + quadOffset));
-	P32_SET(mesh.ptrVertexArray, (struct LevVertex *)(body + vertexOffset));
+	const struct NativeMinimapMesh view = {(const struct QuadBlock *)(body + quadOffset),
+	                                       (const struct LevVertex *)(body + vertexOffset), mesh.numQuadBlock,
+	                                       mesh.numVertex};
 	struct UIMap map;
 	memcpy(&map, body + mapOffset, sizeof(map));
-	const u64 key = NativeMinimap_GeometryKey(&mesh, &map);
-	result = NativeMinimap_GetPixels(&mesh, &map, image, generate);
+	const u64 key = NativeMinimap_GeometryKey(&view, &map);
+	result = NativeMinimap_GetPixels(&view, &map, image, generate);
 	if (result && key)
 		NativeMinimap_WriteIndex(levelID, lod, source, key);
 done:
@@ -735,7 +761,8 @@ int NativeMinimap_DrawLive(struct PrimMem *primMem, u32 *ot, u32 colorID)
 		s_nativeMinimapMesh = mesh;
 		s_nativeMinimapProjection = projection;
 		s_nativeMinimapBuiltEpoch = s_nativeMinimapEpoch;
-		NativeMinimap_Build(mesh, map, &s_nativeMinimapLive);
+		const struct NativeMinimapMesh view = NativeMinimap_MeshFrom(mesh);
+		NativeMinimap_Build(&view, map, &s_nativeMinimapLive);
 	}
 	float aspect = 1;
 #if CTR_NATIVE_WIDESCREEN
@@ -800,7 +827,8 @@ void NativeMinimap_PrepareLive(void)
 	if (!map)
 		return;
 	struct NativeMinimapImage image = {0};
-	u8 *pixels = NativeMinimap_GetPixels(P32_GET(struct mesh_info *, P32_GET(struct Level *const, gt->level1)->ptr_mesh_info), map, &image, 1);
+	const struct NativeMinimapMesh view = NativeMinimap_MeshFrom(P32_GET(struct mesh_info *, P32_GET(struct Level *const, gt->level1)->ptr_mesh_info));
+	u8 *pixels = NativeMinimap_GetPixels(&view, map, &image, 1);
 	free(pixels);
 }
 

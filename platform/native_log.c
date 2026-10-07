@@ -75,6 +75,45 @@ const char *Platform_LogGetPath(void)
 	return s_logPath;
 }
 
+#if defined(_WIN32) && defined(_M_X64) || defined(_WIN32) && defined(__x86_64__)
+// Diagnostic build: log any crash with its code, address and the frame-pointer chain, as
+// addresses to symbolize against the executable.
+internal LONG WINAPI Platform_LogCrashFilter(EXCEPTION_POINTERS *info)
+{
+	const CONTEXT *ctx = info->ContextRecord;
+	char text[256];
+	snprintf(text, sizeof(text), "CRASH: exception 0x%08lx at %p (rsp %p), module base %p\n",
+	         (unsigned long)info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress,
+	         (void *)ctx->Rsp, (void *)GetModuleHandleA(NULL));
+	Platform_LogWrite(stderr, text);
+	if (info->ExceptionRecord->NumberParameters >= 2)
+	{
+		snprintf(text, sizeof(text), "CRASH:   access %s %p\n",
+		         info->ExceptionRecord->ExceptionInformation[0] ? "write" : "read",
+		         (void *)info->ExceptionRecord->ExceptionInformation[1]);
+		Platform_LogWrite(stderr, text);
+	}
+	void **frame = (void **)ctx->Rbp;
+	for (int depth = 0; depth < 16 && frame != NULL; ++depth)
+	{
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery(frame, &mbi, sizeof(mbi)) == 0 || mbi.State != MEM_COMMIT)
+		{
+			break;
+		}
+		snprintf(text, sizeof(text), "CRASH:   #%d return %p\n", depth, frame[1]);
+		Platform_LogWrite(stderr, text);
+		void **next = (void **)frame[0];
+		if (next <= frame)
+		{
+			break;
+		}
+		frame = next;
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+
 void Platform_LogInit(const char *appName)
 {
 	if (s_logPath[0] == '\0')
@@ -87,6 +126,16 @@ void Platform_LogInit(const char *appName)
 			s_logPath[0] = '\0';
 			return;
 		}
+
+		// A ':' in the title ("Crash Team Racing: Turbocharged") makes Windows write the log into
+		// an alternate data stream of a file named "Crash Team Racing", where nobody finds it.
+		for (char *c = s_logPath; *c != '\0'; ++c)
+		{
+			if (*c == ':')
+			{
+				*c = '-';
+			}
+		}
 	}
 
 	s_logStream = fopen(s_logPath, "wb");
@@ -95,6 +144,9 @@ void Platform_LogInit(const char *appName)
 	{
 		fprintf(stderr, "[CTR Native] Error: cannot create log file '%s'\n", s_logPath);
 	}
+#if defined(_WIN32) && defined(_M_X64) || defined(_WIN32) && defined(__x86_64__)
+	SetUnhandledExceptionFilter(Platform_LogCrashFilter);
+#endif
 }
 
 void Platform_LogShutdown(void)
