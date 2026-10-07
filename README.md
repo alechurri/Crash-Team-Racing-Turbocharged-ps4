@@ -1,3 +1,5 @@
+> **This fork adds a PlayStation 4 port** (branch `ps4`). See [ps4/README.md](ps4/README.md) for the PS4 build, install and status. Not affiliated with the upstream project; please report PS4 problems here.
+
 # Crash Team Racing: Turbocharged
 <img src="screenshots/game1.jpg"></img><br>
 Crash Team Racing: Turbocharged is a fork of [Crash Team Racing: High Octane](https://github.com/Rinnegatamante/Crash-Team-Racing-High-Octane), a sourceport for PSVita, PC (Windows) and Web Browser based on the [ctr-native](https://github.com/CTR-tools/ctr-native) project. Turbocharged extends High Octane with additional rendering, precision, and quality-of-life options.
